@@ -25,7 +25,7 @@ from pathlib import Path
 
 # ── Standalone PDB GUID reader (no symstore dependency) ─────────────
 
-MSF7_SIGNATURE = b"Microsoft C/C++ MSF 7.00\r\n\x1ADS\0\0\0"
+MSF7_SIGNATURE = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0"
 
 
 def _pages(size: int, page_size: int) -> int:
@@ -112,9 +112,7 @@ def read_pdb_guid(filepath: str | Path) -> tuple[str, int | None]:
         # ── Read GUID from PDB info stream (stream 1) ──────────────
         # Layout: Version(4) | Signature(4) | Age(4) | GUID(16)
         header = stream_read(1, 0, 28)
-        _ver, _sig, _pdb_age, g1, g2, g3, g4 = struct.unpack(
-            "<IIIIHH8s", header
-        )
+        _ver, _sig, _pdb_age, g1, g2, g3, g4 = struct.unpack("<IIIIHH8s", header)
 
         guid_str = f"{g1:08X}{g2:04X}{g3:04X}{g4.hex().upper()}"
 
@@ -196,9 +194,7 @@ def show_file(filepath: Path) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Verify PDB GUIDs in a symbol store"
-    )
+    parser = argparse.ArgumentParser(description="Verify PDB GUIDs in a symbol store")
     parser.add_argument(
         "store_path",
         nargs="?",
@@ -206,7 +202,8 @@ def main() -> int:
         help="Path to the symbol store root directory",
     )
     parser.add_argument(
-        "--file", "-f",
+        "--file",
+        "-f",
         type=Path,
         help="Read the GUID from a single PDB file",
     )
