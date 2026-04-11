@@ -37,7 +37,7 @@ jobs:
     name: Build and push image
     runs-on: ubuntu-latest
     needs: [format, lint, type-check]
-    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     permissions:
       contents: read
       packages: write
