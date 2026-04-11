@@ -1,0 +1,35 @@
+api:
+  host: "0.0.0.0"
+  port: 5000
+
+# storage:
+#   symbol_store_base_path: "/data/symbols"  # Mount the product-specific symstore dir here
+#   build_drop_base_path: "/data/drops"      # Mount the product-specific drop dir here; optional
+
+# database:
+#   host: "mysql-host"
+#   port: 3306
+#   user: "mysql-user"
+#   password: "your-db-password"  # Or set DATABASE__PASSWORD env var
+#   name: "sourcemod"
+
+# repo:
+#   owner: "alliedmodders"
+#   name: "sourcemod"
+#   product_name: "sourcemod"  # Used as label in symstore transactions
+#   workflow_path: ".github/workflows/build-release.yml"  # Only process runs from this workflow
+#   # reconcile_max_age_days: 90  # Stop retrying incomplete releases older than this; null to disable
+#   # version_branches maps tag prefix → sm_commit_log branch value.
+#   # Defaults cover 1.10–1.13; add entries here when new branches are cut.
+#   # version_branches:
+#   #   "1.13": "master"
+#   #   "1.12": "1.12-dev"
+
+github:
+  webhook_secret: "your-github-webhook-secret-here"  # Or set GITHUB__WEBHOOK_SECRET env var
+  # token: "ghp_..."  # PAT for downloading Actions artifacts; or set GITHUB__TOKEN env var
+  retry_attempts: 3
+  retry_delay: 5  # seconds
+
+log:
+  level: "INFO"  # Or set LOG__LEVEL env var
