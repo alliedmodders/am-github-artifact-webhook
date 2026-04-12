@@ -27,13 +27,15 @@ def get_connection(config):
         conn.close()
 
 
-def get_known_builds(conn) -> dict[str, dict[int, dict]]:
+def get_known_builds(
+    conn, table_name: str = "sm_commit_log"
+) -> dict[str, dict[int, dict]]:
     """
-    Return {branch: {build_num: {windows_url, linux_url}}} for all rows in sm_commit_log.
+    Return {branch: {build_num: {windows_url, linux_url}}} for all rows in the commit log.
     URLs may be None if not yet populated.
     """
     with conn.cursor() as cur:
-        cur.execute("SELECT branch, build, windows_url, linux_url FROM sm_commit_log")
+        cur.execute(f"SELECT branch, build, windows_url, linux_url FROM `{table_name}`")  # noqa: S608
         known: dict[str, dict[int, dict]] = {}
         for row in cur.fetchall():
             known.setdefault(row["branch"], {})[row["build"]] = {
@@ -43,12 +45,20 @@ def get_known_builds(conn) -> dict[str, dict[int, dict]]:
     return known
 
 
-def update_build_urls(conn, *, branch, build_num, windows_url, linux_url):
+def update_build_urls(
+    conn,
+    *,
+    branch,
+    build_num,
+    windows_url,
+    linux_url,
+    table_name: str = "sm_commit_log",
+):
     """Fill in NULL URL columns for an existing build. Non-NULL values are never overwritten."""
     with conn.cursor() as cur:
         cur.execute(
-            """
-            UPDATE sm_commit_log
+            f"""
+            UPDATE `{table_name}`
             SET windows_url = COALESCE(%s, windows_url),
                 linux_url   = COALESCE(%s, linux_url)
             WHERE branch = %s AND build = %s
@@ -58,7 +68,16 @@ def update_build_urls(conn, *, branch, build_num, windows_url, linux_url):
 
 
 def upsert_build(
-    conn, *, branch, sha, build_num, timestamp, message, windows_url, linux_url
+    conn,
+    *,
+    branch,
+    sha,
+    build_num,
+    timestamp,
+    message,
+    windows_url,
+    linux_url,
+    table_name: str = "sm_commit_log",
 ):
     """
     Insert a build record, or on duplicate key fill in any NULL URL columns.
@@ -66,8 +85,8 @@ def upsert_build(
     """
     with conn.cursor() as cur:
         cur.execute(
-            """
-            INSERT INTO sm_commit_log
+            f"""
+            INSERT INTO `{table_name}`
                 (branch, hash, build, date, message, windows_url, linux_url)
             VALUES (%s, %s, %s, FROM_UNIXTIME(%s), %s, %s, %s)
             ON DUPLICATE KEY UPDATE

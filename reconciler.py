@@ -17,6 +17,7 @@ def upsert_from_release(
     client: GitHubReleasesClient,
     db_config,
     version_branches: dict[str, str],
+    commit_log_table: str = "sm_commit_log",
 ) -> bool:
     """
     Resolve and upsert a single GitHub release to the DB.
@@ -59,6 +60,7 @@ def upsert_from_release(
             message=message,
             windows_url=windows_url,
             linux_url=linux_url,
+            table_name=commit_log_table,
         )
 
     logger.info("DB updated for build %d (branch %s, tag %s)", build_num, branch, tag)
@@ -118,6 +120,7 @@ def reconcile(
     download_fn: Callable | None = None,
     product_name: str | None = None,
     max_age_days: int | None = 90,
+    commit_log_table: str = "sm_commit_log",
 ) -> int:
     """
     Fetch GitHub releases and reconcile DB records, build archives, and symbols.
@@ -140,7 +143,7 @@ def reconcile(
     Returns the number of newly DB-inserted builds.
     """
     with get_connection(db_config) as conn:
-        known = get_known_builds(conn)
+        known = get_known_builds(conn, table_name=commit_log_table)
 
     new_count = 0
 
@@ -199,6 +202,7 @@ def reconcile(
                             build_num=build_num,
                             windows_url=windows_url,
                             linux_url=linux_url,
+                            table_name=commit_log_table,
                         )
                     known.setdefault(branch, {})[build_num] = {
                         "windows_url": windows_url
@@ -234,6 +238,7 @@ def reconcile(
                         message=message,
                         windows_url=windows_url,
                         linux_url=linux_url,
+                        table_name=commit_log_table,
                     )
 
                 known.setdefault(branch, {})[build_num] = {
