@@ -56,6 +56,7 @@ class DatabaseSettings(BaseModel):
     user: str
     password: str
     name: str = "sourcemod"
+    commit_log_table: str = "sm_commit_log"
 
 
 class RepoSettings(BaseModel):
@@ -145,6 +146,7 @@ def _run_reconcile():
             download_fn=lambda url, path: download_file(url, path),
             product_name=config.repo.product_name,
             max_age_days=config.repo.reconcile_max_age_days,
+            commit_log_table=config.database.commit_log_table,
         )
     except Exception:
         logger.exception("Scheduled reconciliation failed")
@@ -402,6 +404,7 @@ def process_artifacts(
                     _releases_client,
                     config.database,
                     config.repo.version_branches,
+                    commit_log_table=config.database.commit_log_table,
                 )
             except Exception:
                 logger.exception(

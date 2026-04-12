@@ -61,6 +61,7 @@ database:
   user: "sm_commit_update"
   password: "..."         # env: DATABASE__PASSWORD
   name: "sourcemod"
+  commit_log_table: "sm_commit_log"  # env: DATABASE__COMMIT_LOG_TABLE; default: sm_commit_log
 
 repo:
   owner: "alliedmodders"

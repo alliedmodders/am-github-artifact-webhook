@@ -12,6 +12,7 @@ api:
 #   user: "mysql-user"
 #   password: "your-db-password"  # Or set DATABASE__PASSWORD env var
 #   name: "sourcemod"
+#   commit_log_table: "sm_commit_log"  # Table to write build records to; defaults to sm_commit_log
 
 # repo:
 #   owner: "alliedmodders"
