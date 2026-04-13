@@ -78,6 +78,11 @@ class RepoSettings(BaseModel):
     # Prevents stale broken releases from blocking pagination indefinitely.
     # Set to null to disable.
     reconcile_max_age_days: int | None = 90
+    # When set, only release assets whose name contains this string are
+    # matched for the windows_url / linux_url columns.  Useful for
+    # multi-package releases (e.g. set to "base" to match only the base
+    # package archive).
+    asset_match_filter: str | None = None
 
     @property
     def full_name(self) -> str:
@@ -106,14 +111,14 @@ class AppConfig(BaseSettings):
         return (init_settings, env_settings, YamlConfigSettingsSource(settings_cls))
 
     api: ApiSettings = Field(default_factory=ApiSettings)
-    storage: StorageSettings
+    storage: StorageSettings | None = None
     github: GithubSettings = Field(default_factory=GithubSettings)
     database: DatabaseSettings | None = None
     repo: RepoSettings | None = None
     log: LogSettings = Field(default_factory=LogSettings)
 
 
-config = AppConfig()  # ty: ignore[missing-argument]
+config = AppConfig()
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -141,12 +146,17 @@ def _run_reconcile():
             _releases_client,
             config.database,
             config.repo.version_branches,
-            drop_base_path=config.storage.build_drop_base_path,
-            process_symbols_fn=_process_pdb_artifact_for_sha,
+            drop_base_path=config.storage.build_drop_base_path
+            if config.storage
+            else None,
+            process_symbols_fn=_process_pdb_artifact_for_sha
+            if config.storage
+            else None,
             download_fn=lambda url, path: download_file(url, path),
             product_name=config.repo.product_name,
             max_age_days=config.repo.reconcile_max_age_days,
             commit_log_table=config.database.commit_log_table,
+            asset_match_filter=config.repo.asset_match_filter,
         )
     except Exception:
         logger.exception("Scheduled reconciliation failed")
@@ -236,6 +246,7 @@ def _process_symbols_only(
     auth_headers: dict,
 ) -> None:
     """Download PDB zip, extract, and commit to symstore. Serialized via _storage_lock."""
+    assert config.storage is not None
     base_symbols_path = config.storage.symbol_store_base_path
 
     product_symbols_path = Path(base_symbols_path).resolve()
@@ -320,7 +331,7 @@ def _process_pdb_artifact_for_sha(sha: str, product_name: str) -> None:
     download the PDB artifact, and process into symstore.
     Artifacts expire after ~90 days; logs a warning and returns if unavailable.
     """
-    if not _releases_client or not config.repo:
+    if not _releases_client or not config.repo or not config.storage:
         return
 
     run = _releases_client.find_workflow_run_for_commit(sha, config.repo.workflow_path)
@@ -378,13 +389,13 @@ def process_artifacts(
         auth_headers = {"Authorization": f"Bearer {token}"} if token else {}
 
         # Download and process symbol files
-        if symbols_url:
+        if symbols_url and config.storage:
             _process_symbols_only(symbols_url, safe_version, product_name, auth_headers)
 
         # Fetch the GitHub Release once; used for both DB upsert and build drop.
         release = None
         needs_release = (config.database and config.repo) or (
-            config.storage.build_drop_base_path and config.repo
+            config.storage and config.storage.build_drop_base_path and config.repo
         )
         if needs_release and _releases_client:
             try:
@@ -405,6 +416,7 @@ def process_artifacts(
                     config.database,
                     config.repo.version_branches,
                     commit_log_table=config.database.commit_log_table,
+                    asset_match_filter=config.repo.asset_match_filter,
                 )
             except Exception:
                 logger.exception(
@@ -412,7 +424,7 @@ def process_artifacts(
                 )
 
         # Download build archives to the local drop directory as a backup mirror.
-        if release and config.storage.build_drop_base_path:
+        if release and config.storage and config.storage.build_drop_base_path:
             try:
                 version_prefix = ".".join(build_version.split(".")[:2])
                 drop_dir = Path(config.storage.build_drop_base_path) / version_prefix

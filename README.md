@@ -72,8 +72,29 @@ log:
   level: "INFO"   # env: LOG__LEVEL
 ```
 
-`storage` is required. `database` and `repo` are optional — omitting them disables
-DB upsert and reconciliation.
+`storage` is optional. Omitting it disables PDB symbol store processing and build-drop
+downloads — useful for products that only need commit log tracking.
+`database` and `repo` are optional — omitting them disables DB upsert and reconciliation.
+
+### Repo Settings
+
+The `repo` section supports additional options:
+
+```yaml
+repo:
+  owner: "alliedmodders"
+  name: "sourcemod"
+  product_name: "sourcemod"
+  workflow_path: ".github/workflows/build-release.yml"  # Workflow to monitor
+  version_branches:                    # Maps version prefix → branch name
+    "1.12": "1.12-dev"
+    "1.13": "master"
+  reconcile_max_age_days: 90           # How far back reconciliation looks (null = no limit)
+  asset_match_filter: null             # If set, only release assets containing this string
+                                       # are matched for the windows/linux URL columns.
+                                       # Useful for multi-package releases, e.g. set to "base"
+                                       # to match only the base package archive.
+```
 
 ## Running the Server
 
