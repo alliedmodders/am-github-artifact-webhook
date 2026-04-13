@@ -118,7 +118,7 @@ class AppConfig(BaseSettings):
     log: LogSettings = Field(default_factory=LogSettings)
 
 
-config = AppConfig()  # ty: ignore[missing-argument]
+config = AppConfig()
 
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
@@ -246,6 +246,7 @@ def _process_symbols_only(
     auth_headers: dict,
 ) -> None:
     """Download PDB zip, extract, and commit to symstore. Serialized via _storage_lock."""
+    assert config.storage is not None
     base_symbols_path = config.storage.symbol_store_base_path
 
     product_symbols_path = Path(base_symbols_path).resolve()
