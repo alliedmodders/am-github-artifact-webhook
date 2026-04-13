@@ -18,6 +18,7 @@ def upsert_from_release(
     db_config,
     version_branches: dict[str, str],
     commit_log_table: str = "sm_commit_log",
+    asset_match_filter: str | None = None,
 ) -> bool:
     """
     Resolve and upsert a single GitHub release to the DB.
@@ -48,7 +49,9 @@ def upsert_from_release(
         return False
 
     timestamp = client.release_timestamp(release)
-    windows_url, linux_url = client.parse_release_assets(release)
+    windows_url, linux_url = client.parse_release_assets(
+        release, asset_filter=asset_match_filter
+    )
 
     with get_connection(db_config) as conn:
         upsert_build(
@@ -121,6 +124,7 @@ def reconcile(
     product_name: str | None = None,
     max_age_days: int | None = 90,
     commit_log_table: str = "sm_commit_log",
+    asset_match_filter: str | None = None,
 ) -> int:
     """
     Fetch GitHub releases and reconcile DB records, build archives, and symbols.
@@ -193,7 +197,9 @@ def reconcile(
             all_done = False
 
             if needs_url_update:
-                windows_url, linux_url = client.parse_release_assets(release)
+                windows_url, linux_url = client.parse_release_assets(
+                    release, asset_filter=asset_match_filter
+                )
                 if windows_url or linux_url:
                     with get_connection(db_config) as conn:
                         update_build_urls(
@@ -226,7 +232,9 @@ def reconcile(
                     continue
 
                 timestamp = client.release_timestamp(release)
-                windows_url, linux_url = client.parse_release_assets(release)
+                windows_url, linux_url = client.parse_release_assets(
+                    release, asset_filter=asset_match_filter
+                )
 
                 with get_connection(db_config) as conn:
                     upsert_build(

@@ -122,11 +122,20 @@ class GitHubReleasesClient:
         return m.group(1), int(m.group(2))
 
     @staticmethod
-    def parse_release_assets(release: dict) -> tuple[str | None, str | None]:
-        """Extract (windows_url, linux_url) from release assets."""
+    def parse_release_assets(
+        release: dict, asset_filter: str | None = None
+    ) -> tuple[str | None, str | None]:
+        """Extract (windows_url, linux_url) from release assets.
+
+        If asset_filter is set, only assets whose name contains the filter
+        string are considered (e.g. "base" to match only the base package
+        in a multi-package release).
+        """
         windows_url = linux_url = None
         for asset in release.get("assets", []):
             name = asset["name"]
+            if asset_filter and asset_filter not in name:
+                continue
             if re.search(r"-windows\.zip$", name, re.IGNORECASE):
                 windows_url = asset["browser_download_url"]
             elif re.search(r"-linux\.tar\.gz$", name, re.IGNORECASE):
