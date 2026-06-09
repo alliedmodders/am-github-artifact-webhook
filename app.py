@@ -25,7 +25,11 @@ from pydantic_settings import (
 from symstore import Store
 
 from releases import GitHubReleasesClient
-from reconciler import reconcile, upsert_from_release
+from reconciler import (
+    reconcile,
+    upsert_from_release,
+    write_latest_pointers,
+)
 
 
 class ApiSettings(BaseModel):
@@ -451,6 +455,9 @@ def process_artifacts(
                     except Exception:
                         tmp_path.unlink(missing_ok=True)
                         raise
+
+                # (Re)write one <product>-latest-[<package>-]<platform> pointer per archive.
+                write_latest_pointers(drop_dir, product_name, release)
             except Exception:
                 logger.exception("Build drop failed for %s (non-fatal)", build_version)
 

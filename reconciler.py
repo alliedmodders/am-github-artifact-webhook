@@ -12,6 +12,74 @@ from releases import GitHubReleasesClient
 logger = logging.getLogger(__name__)
 
 
+def _archive_platform(name: str) -> tuple[str | None, str]:
+    """Split a build-archive filename into (platform, stem).
+
+    Returns ('windows'|'linux', filename-without-platform-suffix), or (None, '')
+    if the name isn't a build archive. E.g.
+    'amxmodx-1.10.0-git1234-base-linux.tar.gz' → ('linux', 'amxmodx-1.10.0-git1234-base').
+    """
+    low = name.lower()
+    if low.endswith("-windows.zip"):
+        return "windows", name[: -len("-windows.zip")]
+    if low.endswith("-linux.tar.gz"):
+        return "linux", name[: -len("-linux.tar.gz")]
+    return None, ""
+
+
+def latest_pointer_map(release: dict, product_name: str) -> dict[str, str]:
+    """Map pointer-filename → archive-filename for every build archive in a release.
+
+    One pointer per archive. The pointer name is
+    `<product>-latest-[<package>-]<platform>`.  The <package> token is whatever
+    distinguishes sibling archives: the leading tokens shared by every archive
+    stem are the product+version prefix, and the remainder is the package.  So a
+    multi-package release (amxmodx base/cstrike/dod) yields one pointer each
+    (amxmodx-latest-base-linux, ...), while a single-archive product (mmsource,
+    sourcemod) omits the package entirely (mmsource-latest-linux).
+    """
+    # (filename, platform, stem tokens) for each build archive.
+    archives: list[tuple[str, str, list[str]]] = []
+    for asset in release.get("assets", []):
+        name = asset["name"]
+        platform, stem = _archive_platform(name)
+        if platform is None:
+            continue
+        archives.append((name, platform, stem.split("-")))
+    if not archives:
+        return {}
+
+    # Count the leading stem tokens common to every archive (product + version);
+    # zip() stops at the shortest token list automatically.
+    shared = 0
+    for column in zip(*(toks for _, _, toks in archives)):
+        if len(set(column)) == 1:
+            shared += 1
+        else:
+            break
+
+    pointers: dict[str, str] = {}
+    for name, platform, toks in archives:
+        package = "-".join(toks[shared:])
+        suffix = f"{package}-{platform}" if package else platform
+        pointers[f"{product_name}-latest-{suffix}"] = name
+    return pointers
+
+
+def write_latest_pointer(drop_dir: Path, pointer_name: str, filename: str) -> None:
+    """(Re)write one latest-pointer file (mode 0644) holding only `filename` (no newline)."""
+    pointer = drop_dir / pointer_name
+    pointer.write_text(filename)
+    pointer.chmod(0o644)
+
+
+def write_latest_pointers(drop_dir: Path, product_name: str, release: dict) -> None:
+    """(Re)write a latest-pointer beside every build archive of `release` present in drop_dir."""
+    for pointer_name, filename in latest_pointer_map(release, product_name).items():
+        if (drop_dir / filename).exists():
+            write_latest_pointer(drop_dir, pointer_name, filename)
+
+
 def upsert_from_release(
     release: dict,
     client: GitHubReleasesClient,
@@ -153,6 +221,11 @@ def reconcile(
 
     new_count = 0
 
+    # Newest archive filename per (version_prefix, pointer_name). Releases are
+    # iterated newest-first, so the first entry seen for each key is the latest;
+    # used after the loop to (re)write the latest-pointer files.
+    latest_archives: dict[tuple[str, str], str] = {}
+
     for page_releases in client.iter_release_pages():
         all_done = True
 
@@ -166,6 +239,10 @@ def reconcile(
             branch = version_branches.get(version_prefix)
             if not branch:
                 continue
+
+            if drop_base_path and product_name:
+                for pname, fname in latest_pointer_map(release, product_name).items():
+                    latest_archives.setdefault((version_prefix, pname), fname)
 
             branch_known = known.get(branch, {})
             is_new = build_num not in branch_known
@@ -284,6 +361,13 @@ def reconcile(
 
         if all_done:
             break
+
+    # (Re)write each latest-pointer to the newest build that is present locally.
+    if drop_base_path:
+        for (version_prefix, pname), fname in latest_archives.items():
+            drop_dir = Path(drop_base_path) / version_prefix
+            if (drop_dir / fname).exists():
+                write_latest_pointer(drop_dir, pname, fname)
 
     logger.info("Reconciliation complete: %d new build(s) processed", new_count)
     return new_count
