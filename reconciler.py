@@ -100,6 +100,7 @@ def _download_missing_archives(
             continue
         target = drop_dir / name
         if target.exists() and target.stat().st_size >= asset["size"]:
+            target.chmod(0o644)  # heal archives written before the 0644 fix
             continue
         logger.info("Downloading missing/incomplete archive: %s", name)
         tmp_fd, tmp_str = tempfile.mkstemp(dir=drop_dir, suffix=".tmp")
@@ -108,6 +109,7 @@ def _download_missing_archives(
         try:
             download_fn(asset["browser_download_url"], tmp_path)
             tmp_path.rename(target)
+            target.chmod(0o644)  # mkstemp creates 0600; downloads must be 0644
             logger.info("Archive saved: %s", target)
         except Exception:
             tmp_path.unlink(missing_ok=True)

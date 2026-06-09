@@ -438,6 +438,7 @@ def process_artifacts(
                         continue
                     target = drop_dir / name
                     if target.exists() and target.stat().st_size >= asset["size"]:
+                        target.chmod(0o644)  # heal archives written before the 0644 fix
                         continue
                     tmp_fd, tmp_str = tempfile.mkstemp(dir=drop_dir, suffix=".tmp")
                     os.close(tmp_fd)
@@ -445,6 +446,7 @@ def process_artifacts(
                     try:
                         download_file(asset["browser_download_url"], tmp_path)
                         tmp_path.rename(target)
+                        target.chmod(0o644)  # mkstemp makes 0600; drops must be 0644
                         logger.info(f"Build archive saved to {target}")
                     except Exception:
                         tmp_path.unlink(missing_ok=True)
