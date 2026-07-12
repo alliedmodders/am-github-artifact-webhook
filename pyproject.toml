@@ -8,7 +8,7 @@ dependencies = [
     "requests>=2.32.0",
     "symstore==0.3.5",
     "pydantic-settings[yaml]>=2.14.2",
-    "apscheduler>=3.10",
+    "apscheduler>=3.11.3",
     "pymysql>=1.1",
 ]
 
