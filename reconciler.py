@@ -1,10 +1,10 @@
-import re
-import os
-import time
 import logging
+import os
+import re
 import tempfile
+import time
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 from db import get_connection, get_known_builds, update_build_urls, upsert_build
 from releases import GitHubReleasesClient

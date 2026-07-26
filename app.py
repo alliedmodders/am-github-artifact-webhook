@@ -1,20 +1,20 @@
-import re
-import os
-import hmac
 import hashlib
+import hmac
 import json
 import logging
-import threading
-import tempfile
-import zipfile
+import os
+import re
 import shutil
+import tempfile
+import threading
+import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path
 
 import requests
 import uvicorn
 from apscheduler.schedulers.background import BackgroundScheduler
-from fastapi import FastAPI, Request, Header, HTTPException, Depends
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel, Field
 from pydantic_settings import (
     BaseSettings,
@@ -24,12 +24,12 @@ from pydantic_settings import (
 )
 from symstore import Store
 
-from releases import GitHubReleasesClient
 from reconciler import (
     reconcile,
     upsert_from_release,
     write_latest_pointers,
 )
+from releases import GitHubReleasesClient
 
 
 class ApiSettings(BaseModel):
@@ -217,8 +217,8 @@ async def verify_github_signature(request: Request):
             raise HTTPException(status_code=401, detail="Invalid signature")
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error(f"Signature verification failed: {e}")
+    except Exception:
+        logger.exception("Signature verification failed")
         raise HTTPException(status_code=401, detail="Signature verification failed")
 
 
@@ -233,8 +233,7 @@ def download_file(url: str, target_path: Path, headers: dict | None = None) -> P
             target_path.parent.mkdir(parents=True, exist_ok=True)
 
             with open(target_path, "wb") as f:
-                for chunk in response.iter_content(chunk_size=8192):
-                    f.write(chunk)
+                f.writelines(response.iter_content(chunk_size=8192))
             return target_path
         except Exception as e:
             logger.error(f"Download attempt {attempt + 1} failed: {e}")

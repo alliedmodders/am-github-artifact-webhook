@@ -17,11 +17,10 @@ Usage:
 """
 
 import argparse
-import struct
 import math
+import struct
 import sys
 from pathlib import Path
-
 
 # ── Standalone PDB GUID reader (no symstore dependency) ─────────────
 
@@ -29,7 +28,7 @@ MSF7_SIGNATURE = b"Microsoft C/C++ MSF 7.00\r\n\x1aDS\0\0\0"
 
 
 def _pages(size: int, page_size: int) -> int:
-    return int(math.ceil(float(size) / page_size))
+    return math.ceil(size / page_size)
 
 
 def read_pdb_guid(filepath: str | Path) -> tuple[str, int | None]:
@@ -150,14 +149,14 @@ def verify_store(store_path: Path) -> int:
                 continue
 
             pdb_file = hash_dir / pdb_dir.name
-            if not pdb_file.exists() or not pdb_file.suffix.lower() == ".pdb":
+            if not pdb_file.exists() or pdb_file.suffix.lower() != ".pdb":
                 continue
 
             stored_hash = hash_dir.name
             try:
                 guid, age = read_pdb_guid(pdb_file)
                 computed_hash = format_hash(guid, age)
-            except Exception as e:
+            except Exception as e:  # noqa: BLE001 - report all malformed PDBs
                 print(f"  ERROR  {pdb_dir.name}/{stored_hash}  →  {e}")
                 mismatches += 1
                 checked += 1
@@ -182,7 +181,7 @@ def show_file(filepath: Path) -> int:
     """Print the GUID+age hash for a single PDB file."""
     try:
         guid, age = read_pdb_guid(filepath)
-    except Exception as e:
+    except Exception as e:  # noqa: BLE001 - report all invalid PDB inputs
         print(f"Error reading {filepath}: {e}", file=sys.stderr)
         return 1
 

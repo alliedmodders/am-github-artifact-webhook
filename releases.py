@@ -1,7 +1,8 @@
-import re
 import logging
+import re
+from collections.abc import Generator
 from datetime import datetime
-from typing import Any, Generator
+from typing import Any
 
 import requests
 
@@ -65,7 +66,7 @@ class GitHubReleasesClient:
         """Fetch a single release by tag name."""
         return self._get(f"/repos/{self.repo}/releases/tags/{tag}")
 
-    def iter_release_pages(self, per_page: int = 100) -> Generator[list, None, None]:
+    def iter_release_pages(self, per_page: int = 100) -> Generator[list]:
         """Paginate through all releases newest-first, yielding one page at a time."""
         page = 1
         while True:
@@ -146,5 +147,5 @@ class GitHubReleasesClient:
     def release_timestamp(release: dict) -> int:
         """Parse published_at to a Unix timestamp."""
         published = release.get("published_at", "")
-        dt = datetime.fromisoformat(published.replace("Z", "+00:00"))
+        dt = datetime.fromisoformat(published)
         return int(dt.timestamp())

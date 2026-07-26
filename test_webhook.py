@@ -116,7 +116,7 @@ def main():
         print(f"  Status: {resp.status_code}")
         try:
             print(f"  Body:   {json.dumps(resp.json(), indent=2)}")
-        except Exception:
+        except requests.exceptions.JSONDecodeError:
             print(f"  Body:   {resp.text}")
 
         if resp.status_code == 202:

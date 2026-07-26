@@ -35,7 +35,7 @@ def get_known_builds(
     URLs may be None if not yet populated.
     """
     with conn.cursor() as cur:
-        cur.execute(f"SELECT branch, build, windows_url, linux_url FROM `{table_name}`")  # noqa: S608
+        cur.execute(f"SELECT branch, build, windows_url, linux_url FROM `{table_name}`")
         known: dict[str, dict[int, dict]] = {}
         for row in cur.fetchall():
             known.setdefault(row["branch"], {})[row["build"]] = {
