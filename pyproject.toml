@@ -7,7 +7,7 @@ dependencies = [
     "uvicorn[standard]>=0.54.0",
     "requests>=2.32.0",
     "symstore==0.3.5",
-    "pydantic-settings[yaml]>=2.16.0",
+    "pydantic-settings[yaml]>=2.16.1",
     "apscheduler>=3.11.3",
     "pymysql>=1.2.3",
 ]
