@@ -3,7 +3,7 @@ name = "github-artifact-webhook"
 version = "0.1.0"
 requires-python = ">=3.14"
 dependencies = [
-    "fastapi>=0.143.1",
+    "fastapi>=0.159.1",
     "uvicorn[standard]>=0.54.0",
     "requests>=2.32.0",
     "symstore==0.3.5",
