@@ -9,7 +9,7 @@ dependencies = [
     "symstore==0.3.5",
     "pydantic-settings[yaml]>=2.16.2",
     "apscheduler>=3.11.3",
-    "pymysql>=1.2.3",
+    "pymysql>=1.2.4",
 ]
 
 [dependency-groups]
